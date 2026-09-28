@@ -1,0 +1,4 @@
+sentence-transformers==5.1.0
+transformers==4.56.0
+torch==2.8.0
+onnxruntime==1.21.1
