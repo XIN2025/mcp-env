@@ -1,0 +1,360 @@
+openapi: 3.1.0
+info:
+  title: MCP Capability Envelope Operator API
+  version: 1.1.0
+  description: Local operator contract for governed retrieval, argument binding, approval, dispatch, and evidence inspection.
+servers:
+  - url: /
+paths:
+  /api/health:
+    get:
+      operationId: getHealth
+      responses:
+        "200":
+          description: Runtime health and pinned identities.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+  /api/search:
+    post:
+      operationId: searchCapabilities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SearchRequest" }
+      responses:
+        "200":
+          description: Policy-eligible retrieval results.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SearchResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/prepare:
+    post:
+      operationId: prepareCapability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PrepareRequest" }
+      responses:
+        "200":
+          description: Prepared arguments and issued grant.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PrepareResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/execute:
+    post:
+      operationId: executeCapability
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExecuteRequest" }
+      responses:
+        "200":
+          description: Executor dispatch result.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExecuteResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/grants:
+    get:
+      operationId: listGrants
+      responses:
+        "200":
+          description: Process-local grant states. List responses omit tokens.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GrantList" }
+  /api/grants/{grantId}:
+    parameters:
+      - $ref: "#/components/parameters/GrantId"
+    get:
+      operationId: inspectGrant
+      responses:
+        "200":
+          description: One grant, including a token when locally approved.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Grant" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/grants/{grantId}/approve:
+    parameters:
+      - $ref: "#/components/parameters/GrantId"
+    post:
+      operationId: approveGrant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ApproveRequest" }
+      responses:
+        "200":
+          description: Approved grant.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Grant" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/grants/{grantId}/deny:
+    parameters:
+      - $ref: "#/components/parameters/GrantId"
+    post:
+      operationId: denyGrant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DenyRequest" }
+      responses:
+        "200":
+          description: Denied grant.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Grant" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/receipts:
+    get:
+      operationId: listReceipts
+      responses:
+        "200":
+          description: Hash-chain status and decision rows.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReceiptList" }
+  /api/policy/reload:
+    post:
+      operationId: reloadPolicy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+      responses:
+        "200":
+          description: Health after the policy file is reloaded.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+components:
+  parameters:
+    GrantId:
+      name: grantId
+      in: path
+      required: true
+      schema: { type: string, minLength: 1 }
+  responses:
+    BadRequest:
+      description: Request or policy decision failed.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+      additionalProperties: false
+    Health:
+      type: object
+      required: [status, catalog_mode, executor_mode, catalog_tools, catalog_sha256, model_sha256, topology_sha256, policy_name, policy_sha256, decision_rows, chain_valid]
+      properties:
+        status: { type: string }
+        catalog_mode: { type: string, enum: [catalog, upstream] }
+        upstream: { $ref: "#/components/schemas/Upstream" }
+        executor_mode: { type: string, enum: [mock, remote, "upstream:latentgraph"] }
+        catalog_tools: { type: integer }
+        catalog_sha256: { type: string }
+        model_sha256: { type: string }
+        topology_sha256: { type: string }
+        policy_name: { type: string }
+        policy_sha256: { type: string }
+        decision_rows: { type: integer }
+        chain_valid: { type: boolean }
+      additionalProperties: false
+    Upstream:
+      type: object
+      required: [server, version, project, tools]
+      properties:
+        server: { type: string }
+        version: { type: string }
+        project: { type: string }
+        tools:
+          type: array
+          items:
+            type: object
+            required: [slug, description, risk, approval_required]
+            properties:
+              slug: { type: string }
+              description: { type: string }
+              risk: { type: string, enum: [read_only, destructive, unknown] }
+              approval_required: { type: boolean }
+            additionalProperties: false
+      additionalProperties: false
+    SearchRequest:
+      type: object
+      required: [task, k]
+      properties:
+        task: { type: string, minLength: 1 }
+        k: { type: integer, minimum: 1, maximum: 8 }
+      additionalProperties: false
+    SearchResponse:
+      type: object
+      required: [task_sha256, policy_sha256, candidates, trace]
+      properties:
+        task_sha256: { type: string }
+        policy_sha256: { type: string }
+        candidates:
+          type: array
+          items: { $ref: "#/components/schemas/Candidate" }
+        trace: { $ref: "#/components/schemas/SearchTrace" }
+      additionalProperties: false
+    Candidate:
+      type: object
+      required: [slug, name, description, toolkit_slug, toolkit_name, version, tags, risk, approval_required, distance, original_schema_sha256, projected_schema_sha256, original_input_schema, input_schema]
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        description: { type: string }
+        toolkit_slug: { type: string }
+        toolkit_name: { type: string }
+        version: { type: string }
+        tags: { type: array, items: { type: string } }
+        risk: { type: string, enum: [read_only, destructive, unknown] }
+        approval_required: { type: boolean }
+        distance: { type: number }
+        original_schema_sha256: { type: string }
+        projected_schema_sha256: { type: string }
+        original_input_schema: { type: object, additionalProperties: true }
+        input_schema: { type: object, additionalProperties: true }
+      additionalProperties: false
+    SearchTrace:
+      type: object
+      required: [requested_k, eligible_tools, overfetch, ef_search, candidate_count, predicate_evaluations, distance_evaluations, visited_nodes, exact_fallback, plan]
+      properties:
+        requested_k: { type: integer }
+        eligible_tools: { type: integer }
+        overfetch: { type: integer }
+        ef_search: { type: integer }
+        candidate_count: { type: integer }
+        predicate_evaluations: { type: integer }
+        distance_evaluations: { type: integer }
+        visited_nodes: { type: integer }
+        exact_fallback: { type: boolean }
+        plan: { type: string }
+      additionalProperties: false
+    PrepareRequest:
+      type: object
+      required: [task, tool_slug, arguments, ttl_seconds]
+      properties:
+        task: { type: string, minLength: 1 }
+        tool_slug: { type: string, minLength: 1 }
+        arguments: { type: object, additionalProperties: true }
+        ttl_seconds: { type: integer, minimum: 1, maximum: 600 }
+      additionalProperties: false
+    PrepareResponse:
+      type: object
+      required: [task_sha256, arguments_sha256, prepared_arguments, decision, projection, grant]
+      properties:
+        task_sha256: { type: string }
+        arguments_sha256: { type: string }
+        prepared_arguments: { type: object, additionalProperties: true }
+        decision: { $ref: "#/components/schemas/PolicyDecision" }
+        projection: { $ref: "#/components/schemas/Projection" }
+        grant: { $ref: "#/components/schemas/Grant" }
+      additionalProperties: false
+    PolicyDecision:
+      type: object
+      required: [allowed, reason, risk, approval_required, matched_tags]
+      properties:
+        allowed: { type: boolean }
+        reason: { type: string }
+        risk: { type: string }
+        approval_required: { type: boolean }
+        matched_tags: { type: array, items: { type: string } }
+      additionalProperties: false
+    Projection:
+      type: object
+      required: [original_schema_sha256, projected_schema_sha256, projected_schema, hidden_arguments, injected_defaults]
+      properties:
+        original_schema_sha256: { type: string }
+        projected_schema_sha256: { type: string }
+        projected_schema: { type: object, additionalProperties: true }
+        hidden_arguments: { type: array, items: { type: string } }
+        injected_defaults: { type: object, additionalProperties: true }
+      additionalProperties: false
+    Grant:
+      type: object
+      required: [grant_id, state, tool_slug, tool_version, approval_required, issued_at, expires_at]
+      properties:
+        grant_id: { type: string }
+        state: { type: string, enum: [pending, approved, denied, consumed, expired] }
+        tool_slug: { type: string }
+        tool_version: { type: string }
+        approval_required: { type: boolean }
+        approved_by: { type: string }
+        issued_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time }
+        token: { type: string }
+        denial_reason: { type: string }
+      additionalProperties: false
+    GrantList:
+      type: object
+      required: [grants]
+      properties:
+        grants: { type: array, items: { $ref: "#/components/schemas/Grant" } }
+      additionalProperties: false
+    ApproveRequest:
+      type: object
+      required: [principal]
+      properties:
+        principal: { type: string, minLength: 1 }
+      additionalProperties: false
+    DenyRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string }
+      additionalProperties: false
+    ExecuteRequest:
+      type: object
+      required: [grant_token, tool_slug, arguments]
+      properties:
+        grant_token: { type: string, minLength: 1 }
+        tool_slug: { type: string, minLength: 1 }
+        arguments: { type: object, additionalProperties: true }
+      additionalProperties: false
+    ExecuteResponse:
+      type: object
+      required: [grant_id, mode, result, evidence_recorded]
+      properties:
+        grant_id: { type: string }
+        mode: { type: string, enum: [mock, remote, "upstream:latentgraph"] }
+        result: true
+        evidence_recorded: { type: boolean }
+        evidence_warning: { type: string }
+      additionalProperties: false
+    ReceiptRow:
+      type: object
+      required: [sequence, timestamp, event, fields, previous_digest, digest]
+      properties:
+        sequence: { type: integer }
+        timestamp: { type: string, format: date-time }
+        event: { type: string }
+        fields: { type: object, additionalProperties: true }
+        previous_digest: { type: string }
+        digest: { type: string }
+      additionalProperties: false
+    ReceiptList:
+      type: object
+      required: [chain_valid, rows]
+      properties:
+        chain_valid: { type: boolean }
+        rows: { type: array, items: { $ref: "#/components/schemas/ReceiptRow" } }
+      additionalProperties: false

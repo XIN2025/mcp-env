@@ -1,0 +1,13 @@
+{
+  "name": "read-mostly-demo",
+  "allowed_toolkits": [],
+  "denied_toolkits": [],
+  "allowed_tools": [],
+  "denied_tools": [],
+  "required_tags": [],
+  "denied_tags": [],
+  "unknown_risk": "deny_prepare",
+  "destructive_requires_approval": true,
+  "hidden_arguments": {},
+  "injected_defaults": {}
+}
