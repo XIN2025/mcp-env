@@ -1,0 +1,8 @@
+{
+  "name": "envelope-upstream-latentgraph",
+  "private": true,
+  "description": "Pins the LatentGraph MCP server that version B of the envelope fronts.",
+  "dependencies": {
+    "@latentforce/latentgraph": "1.0.68"
+  }
+}

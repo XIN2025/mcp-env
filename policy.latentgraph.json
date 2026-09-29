@@ -1,0 +1,13 @@
+{
+  "name": "latentgraph-read-freely-write-with-approval",
+  "allowed_toolkits": ["latentgraph"],
+  "denied_toolkits": [],
+  "allowed_tools": [],
+  "denied_tools": [],
+  "required_tags": [],
+  "denied_tags": [],
+  "unknown_risk": "require_approval",
+  "destructive_requires_approval": true,
+  "hidden_arguments": {},
+  "injected_defaults": {}
+}

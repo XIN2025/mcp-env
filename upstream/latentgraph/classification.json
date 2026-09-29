@@ -1,0 +1,15 @@
+{
+  "server": "@latentforce/latentgraph 1.0.68",
+  "tools": {
+    "ask_codebase": "readOnlyHint",
+    "get_call_chain": "readOnlyHint",
+    "get_dependencies": "readOnlyHint",
+    "get_file": "readOnlyHint",
+    "get_module_info": "readOnlyHint",
+    "get_pr_insights": "readOnlyHint",
+    "get_project_overview": "readOnlyHint",
+    "get_symbol": "readOnlyHint",
+    "learnings": "updateHint",
+    "update_graph": "updateHint"
+  }
+}
